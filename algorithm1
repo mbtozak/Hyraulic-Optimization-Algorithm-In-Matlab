@@ -1,0 +1,74 @@
+function [Hest, Hobs]=YASHypotenuse(xCenter,yCenter,kCenter,zoneSize, observationSize)
+global rowSize columnSize currentHypotenuse  minHypotenuse  minIndex S
+load 'S.txt'
+load 'Domain.txt'
+
+rowSize=20;
+columnSize=30;
+kMatrix=zeros(rowSize,columnSize);
+
+fileID = fopen('C:\Users\mbtoz\Desktop\GM_MODFLOW\Hobs.txt','r');
+HobsText = textscan(fileID,' %f \n');
+fclose(fileID);
+
+for i = 1 : observationSize
+    Hobs(i) = HobsText{1}(i);
+end
+
+for i = 1:rowSize
+    for j = 1:columnSize
+        for k = 1 : zoneSize
+            currentHypotenuse (k) = (i - xCenter(k)) ^ 2 + (j - yCenter(k)) ^ 2;
+        end
+        minHypotenuse  = currentHypotenuse (1);
+        minIndex = 1;
+        for k = 1 : zoneSize
+            if currentHypotenuse (k) < minHypotenuse 
+                minHypotenuse  = currentHypotenuse (k);
+                minIndex = k;
+            end
+        end
+        kMatrix(i,j) = kCenter(minIndex);
+    end
+end
+
+    filePath = append('C:\Users\mbtoz\Desktop\GM_MODFLOW\YETER.LPF');
+    fileID = fopen(filePath,'w');
+    fprintf(fileID,'40   -888.0   0   0 \n');
+    fprintf(fileID,'0 \n');
+    fprintf(fileID,'0 \n');
+    fprintf(fileID,'-1.0 \n');
+    fprintf(fileID,'1 \n');
+    fprintf(fileID,'0 \n');
+    fprintf(fileID,'INTERNAL 1.0 (free) -1 \n');
+
+    for i = 1:20
+        fprintf(fileID,'%.7f ', kMatrix(i,:));
+        fprintf(fileID,'\n');
+    end
+
+    fprintf(fileID,'CONSTANT 1.0 \n');
+    fprintf(fileID,'CONSTANT 3.0 \n');
+    fprintf(fileID,'INTERNAL 1.0 (free) -1 \n');
+
+    for i = 1:20
+        fprintf(fileID,'%.4f ', S(i,:));
+        fprintf(fileID,'\n'); 
+    end
+
+    fclose(fileID);
+    
+    system('mf2k.exe GM.mfn > NUL');
+
+
+    fileID = fopen('C:\Users\mbtoz\Desktop\GM_MODFLOW\GM._OS','r');
+    C = textscan(fileID,'%f %f %d %s %f');
+    fclose(fileID);
+
+    Hest=C{1}';
+    
+    fileID2 = fopen('C:\Users\mbtoz\Desktop\GM_MODFLOW\Hest.txt','w');
+    fprintf(fileID2,'%f\n', C{1});
+    fclose(fileID2);
+    
+end
